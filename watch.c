@@ -1,3 +1,4 @@
+/* $Id$ */
 /* watch - execute program periodicaly, showing output fullscreen */
 /*
  * Copyright (c) 2003 demon <demon@vhost.dymdns.org>
@@ -38,11 +39,8 @@
 #include <curses.h>
 #define MAXBUF 255
 
-static char copyright[] = "Copyright (C) 2003 demon (demon@vhost.dyndns.org)";
-static char version[] = "0.2";
-static char terms[] = "This program comes with ABSOLUTELY NO WARANTY.\n\
-This is a free software, and you are welcome to redistribute it\n\
-under certain conditions. See the file COPYING for deatails.";
+static char copyright[] = "Copyright (C) 2003 demon <demon@vhost.dyndns.org>";
+static char version[] = "$Revision$";
 extern char *__progname;
 time_t tval;
 int die_flag;
@@ -51,8 +49,7 @@ void usage();
 void die();
 
 int main (int argc, char *argv[]) {
-    int i;
-    int period=5;
+    int period=2;
     char ch;
     char cmd[MAXBUF];
     char buf[MAXBUF];
@@ -66,8 +63,7 @@ int main (int argc, char *argv[]) {
     while ((ch = getopt(argc, argv, "s:v")) != -1)
 	switch (ch) {
 	    case 'v':
-		(void)fprintf(stderr, "%s version %s %s\n", __progname, version, copyright);
-		(void)fprintf(stderr, "%s\n", terms);
+		(void)fprintf(stderr, "%s %s\n%s\n", __progname, version, copyright);
 		exit(1);
 		break;
 	    case 's':
