@@ -99,7 +99,7 @@ int main (int argc, char **argv) {
  	}
 
         initscr();
-	hold_curs = curs_set(NULL);
+	hold_curs = curs_set(0);
 	if(has_colors())
 	    color_flag = 1;
 
@@ -209,7 +209,7 @@ void title(char *cmd) {
 void resize() {
     struct winsize ws;
 
-    if(!ioctl(NULL, TIOCGWINSZ, &ws)) {
+    if(!ioctl(STDOUT_FILENO, TIOCGWINSZ, (char *)&ws)) {
 	LINES = ws.ws_row;
 	COLS = ws.ws_col;
         resizeterm(LINES, COLS);
