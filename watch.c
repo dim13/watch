@@ -108,10 +108,8 @@ int main (int argc, char **argv) {
 	curs_set(hold_curs);
         endwin();
 
-	if(!free(cmd.b_val))
-	    perror("free");
-	else
-	    cmd.b_size = 0;
+	free(cmd.b_val);
+	cmd.b_size = 0;
 
     } else
 	usage();
@@ -198,10 +196,8 @@ void title(char *cmd) {
     if(color_flag)
 	attroff(A_REVERSE);
 
-    if(!free(title.b_val))
-	perror("free");
-    else
-	title.b_size = 0;
+    free(title.b_val);
+    title.b_size = 0;
 
     move(2,0);
 }
