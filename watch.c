@@ -36,7 +36,7 @@ extern char *__progname;
 unsigned int period = 2;
 unsigned short die_flag = 0;
 unsigned short n_flag = 0;
-unsigned short color_flag = 0;;
+unsigned short color_flag = 0;
 
 void loop(char *);
 void title(char *);
