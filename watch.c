@@ -24,7 +24,7 @@ static const char copyright[] =
 "@(#) Copyright (c) 2003, 2004 demon <demon@vhost.dyndns.org>\n";
 static const char rcsid[] =
 "$Id$";
-static const char version[] = "0.6";
+static const char version[] = "0.6.1";
 
 #if defined(__linux__)
 #define __dead __volatile
@@ -196,23 +196,23 @@ title(void)
 	time_t tval;
 	struct tm *tm;
 
-	if (cols >= (int) sizeof(title) || cols - 12 < 0)
+	if (cols >= (int) sizeof(title) || cols - 10 < 0)
 		return -1;
 
 	tval = time(NULL);
 	tm = localtime(&tval);
 
-	snprintf(title, cols, " Every %ds : %s", period, buffer);
+	snprintf(title, cols, "Every %ds: %s", period, buffer);
 
 	tlen = strlen(title);
 	tlen2 = cols - tlen;
 
 	if (tlen2 > 0)
 		memset(title + tlen, ' ', tlen2);
-	if (tlen2 < 12)
-		title[cols - 12] = '>';
+	if (tlen2 < 9)
+		title[cols - 10] = '>';
 
-	snprintf(title + cols - 11, 12, "  %.2d:%.2d:%.2d ",
+	snprintf(title + cols - 9, 10, " %.2d:%.2d:%.2d",
 	    tm->tm_hour, tm->tm_min, tm->tm_sec);
 	title[cols] = '\0';
 
