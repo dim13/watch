@@ -65,23 +65,23 @@ int main (int argc, char *argv[]) {
     argv += optind;
 
     if(*argv) {
-        strcpy(cmd, *argv);
+        strncpy(cmd, *argv, sizeof(cmd)-1);
 	while(*++argv) {
-	    strcat(cmd, " ");
-	    strcat(cmd, *argv);
+	    strncat(cmd, " ", sizeof(cmd)-1);
+	    strncat(cmd, *argv, sizeof(cmd)-1);
 	}
     } else {
 	if(isatty(fileno(stdin)))
 	    fprintf(stderr, "Command: ");
 	(void)fgets(cmd, sizeof(cmd), stdin);
-	cmd[strlen(cmd) - 1] = '\0';
+        cmd[strlen(cmd) - 1] = '\0';
     }
 
     if(strlen(cmd)) {
 	initscr();
 	while(!die_flag) {
 	    time(&tval);
-	    strcpy(curtime, ctime(&tval));
+	    strncpy(curtime, ctime(&tval), sizeof(curtime)-1);
 	    curtime[strlen(curtime) - 6] = '\0';
 	    move(0,0);
 	    printw("%s\tEvery %ds: %s\n\n", curtime, period, cmd);
