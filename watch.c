@@ -27,30 +27,29 @@
 #include <time.h>
 #include <signal.h>
 #include <curses.h>
-#define MAXBUF 255
+#define DEBUG 1
 
 static char *copyright = "(c) 2003 demon <demon@vhost.dyndns.org>";
-static char *version   = "0.2";
+static char *version   = "0.3 alpha";
 extern char *__progname;
 
-time_t tval;
-int die_flag;
+short die_flag;
+short n_flag=0;
 int period=2;
 
-void title();
+void loop(char *);
+void title(char *);
 void usage();
 void die();
 
 int main (int argc, char **argv) {
-    int n_flag=0;
     char ch;
-    char cmd[MAXBUF];
-    char buf[MAXBUF];
-    FILE *pipe;
-    
+    char *cmd;
+
     signal(SIGINT, die);
     signal(SIGTERM, die);
     signal(SIGHUP, die);
+
     
     while ((ch = getopt(argc, argv, "s:vn")) != -1)
 	switch (ch) {
@@ -74,50 +73,53 @@ int main (int argc, char **argv) {
     argv += optind;
 
     if(*argv) {
-        strncpy(cmd, *argv, sizeof(cmd)-1);
+	cmd = (char *)malloc(strlen(*argv) + 1);
+	memcpy(cmd, *argv, strlen(*argv));
 	while(*++argv) {
-	    strncat(cmd, " ", sizeof(cmd)-1);
-	    strncat(cmd, *argv, sizeof(cmd)-1);
-	}
-    } else {
-	if(isatty(fileno(stdin)))
-	    fprintf(stderr, "Command: ");
-	(void)fgets(cmd, sizeof(cmd), stdin);
-        cmd[strlen(cmd) - 1] = '\0';
-    }
-
-    if(strlen(cmd)) {
-	initscr();
-	while(!die_flag) {
-	    move(0,0);
-	    if(!n_flag)
-	        title(cmd);
-	    pipe = popen(cmd, "r");
-	    while(fgets(buf, sizeof(buf), pipe))
-		printw("%s",buf);
-	    refresh();
-	    pclose(pipe);
-	    sleep(period);
-	}
-	endwin();
-    } else {
+	    cmd = (char *)realloc(cmd, strlen(cmd) + strlen(*argv) + 2);
+	    cmd[strlen(cmd)]= ' ';
+	    memcpy(cmd + strlen(cmd), *argv, strlen(*argv));
+ 	}
+	loop(cmd);
+	free(cmd);
+    } else
 	usage();
-    }
 
     exit(0);
 }
 
-void title(char **cmd) {
-    char curtime[30];
+void loop(char *cmd) {
+    char buf;
+    FILE *pipe;
+
+    initscr();
+    while(!die_flag) {
+        move(0,0);
+        if(!n_flag)
+            title(cmd);
+        pipe = popen(cmd, "r");
+        while((buf = fgetc(pipe)) != EOF)
+    	    printw("%c",buf);
+	refresh();
+	pclose(pipe);
+	sleep(period);
+    }
+    endwin();
+}
+
+void title(char *cmd) {
+    char *curtime;
+    time_t tval;
+
     time(&tval);
-    strncpy(curtime, ctime(&tval), sizeof(curtime)-1);
+    curtime = strdup(ctime(&tval));
     curtime[strlen(curtime) - 6] = '\0';
     printw("%s\tEvery %ds: %s", curtime, period, cmd);
     move(2,0);
 }
 
 void usage() {
-    (void)fprintf(stderr, "Usage: %s [-s <seconds> ] [ -vn ] [command]\n", __progname);
+    (void)fprintf(stderr, "Usage: %s [-vns <seconds>] [command]\n", __progname);
     exit (1);
 }
 
