@@ -20,18 +20,19 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <err.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <time.h>
-#include <signal.h>
-#include <curses.h>
-#include <errno.h>
-#include <limits.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+
+#include <curses.h>
+#include <err.h>
+#include <errno.h>
+#include <limits.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 static char buffer[_POSIX_MAX_INPUT];
 static char *copyright = "(c) 2003, 2004 demon <demon@vhost.dyndns.org>";
