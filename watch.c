@@ -1,10 +1,5 @@
 /* $Id$ */
 /*
- * watch -- execute program repeatedly, displaying output fullscreen
- * Based on the original 1991 'watch' by Tony Rems <rembo@unisoft.com>
- * (with mods and corrections by Francois Pinard)
- */
-/*
  * Copyright (c) 2003, 2004 demon <demon@vhost.dymdns.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -19,6 +14,21 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+/*
+ * watch -- execute program repeatedly, displaying output fullscreen
+ * Based on the original 1991 'watch' by Tony Rems <rembo@unisoft.com>
+ * (with mods and corrections by Francois Pinard)
+ */
+
+static const char copyright[] =
+"@(#) Copyright (c) 2003, 2004 demon <demon@vhost.dyndns.org>\n";
+static const char rcsid[] =
+"$Id$";
+static const char version[] = "0.5";
+
+#if defined(__linux__)
+#define __dead __volatile
+#endif
 
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -34,25 +44,22 @@
 #include <time.h>
 #include <unistd.h>
 
-static char buffer[_POSIX_MAX_INPUT];
-static char *copyright = "(c) 2003, 2004 demon <demon@vhost.dyndns.org>";
-static char *version = "0.5";
+static int readargs(char **);
+static void display();
+static int title(void);
+static void resize();
+static void settimer(int);
+static void die();
+static __dead void usage(void);
+
 extern char *__progname;
+char buffer[_POSIX_MAX_INPUT];
 
-unsigned int period = 2;
-unsigned short die_flag = 0;
-unsigned short n_flag = 0;
-unsigned short color_flag = 0;
-
-static int lines, cols;
-
-int readargs(char **);
-void display();
-int title();
-void resize();
-void settimer(int);
-void die();
-void usage();
+int period = 2;
+int die_flag = 0;
+int n_flag = 0;
+int color_flag = 0;
+int lines, cols;
 
 int
 main(int argc, char **argv)
@@ -63,8 +70,8 @@ main(int argc, char **argv)
 	while ((ch = getopt(argc, argv, "+s:vn")) != -1)
 		switch (ch) {
 		case 'v':
-			(void) fprintf(stderr, "watch %s %s\n",
-			    version, copyright);
+			(void) fprintf(stderr, "%s %s %s",
+			    __progname, version, copyright + 5);
 			exit(1);
 			break;
 		case 's':
@@ -92,7 +99,6 @@ main(int argc, char **argv)
 	initscr();
 	lines = LINES;
 	cols = COLS;
-	signal(SIGWINCH, resize);
 
 	hold_curs = curs_set(0);
 	if (has_colors())
@@ -100,7 +106,9 @@ main(int argc, char **argv)
 
 	signal(SIGALRM, display);
 	settimer(period);
-	display();
+	raise(SIGALRM);
+
+	signal(SIGWINCH, resize);
 
 	while (die_flag == 0)
 		pause();
@@ -110,7 +118,7 @@ main(int argc, char **argv)
 	exit(0);
 }
 
-int
+static int
 readargs(char **argv)
 {
 	int alen, blen;
@@ -135,13 +143,13 @@ readargs(char **argv)
 	return 0;
 }
 
-void
+static void
 display()
 {
-	char ch;
-	FILE *pipe;
 	int char_count = 0;
 	int line_count = 0;
+	char ch;
+	FILE *pipe;
 
 	clear();
 
@@ -152,7 +160,7 @@ display()
 	pipe = popen(buffer, "r");
 
 	while ((ch = fgetc(pipe)) != EOF) {
-		if ((ch == '\0') || (ch == '\n')) {
+		if (ch == '\0' || ch == '\n') {
 			line_count++;
 			char_count = 0;
 		}
@@ -168,17 +176,19 @@ display()
 	refresh();
 }
 
-int
-title()
+static int
+title(void)
 {
-	char title[_POSIX_MAX_INPUT];
 	int tlen, tlen2;
+	char title[_POSIX_MAX_INPUT];
+	time_t tval;
+	struct tm *tm;
 
-	time_t tval = time(NULL);
-	struct tm *tm = localtime(&tval);
-
-	if (cols + 1 >= _POSIX_MAX_INPUT)
+	if (cols + 1 >= _POSIX_MAX_INPUT || cols - 12 < 0)
 		return -1;
+
+	tval = time(NULL);
+	tm = localtime(&tval);
 
 	snprintf(title, cols, " Every %ds : %s", period, buffer);
 
@@ -208,7 +218,7 @@ title()
 	return 0;
 }
 
-void
+static void
 resize()
 {
 	int save_errno = errno;
@@ -223,7 +233,7 @@ resize()
 	errno = save_errno;
 }
 
-void
+static void
 settimer(int wait)
 {
 	int save_errno = errno;
@@ -236,16 +246,16 @@ settimer(int wait)
 	errno = save_errno;
 }
 
-void
+static void
 die()
 {
 	die_flag = 1;
 }
 
-void
-usage()
+static __dead void
+usage(void)
 {
-	(void) fprintf(stderr, "Usage: %s [-v] [-n] [-s <seconds>] command\n",
+	(void) fprintf(stderr, "usage: %s [-v] [-n] [-s <seconds>] command\n",
 	    __progname);
 	exit(1);
 }
