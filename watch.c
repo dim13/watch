@@ -29,13 +29,11 @@
 #include <signal.h>
 #include <curses.h>
 #include <errno.h>
+#include <limits.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
 
-#define MAXBUF 1024
-
-static char buffer[MAXBUF];
-
+static char buffer[_POSIX_MAX_INPUT];
 static char *copyright = "(c) 2003, 2004 demon <demon@vhost.dyndns.org>";
 static char *version = "0.5";
 extern char *__progname;
@@ -120,14 +118,14 @@ readargs(char **argv)
 		return -1;
 
 	alen = strlen(*argv);
-	if (alen + 1 >= MAXBUF)
+	if (alen + 1 >= _POSIX_MAX_INPUT)
 		return -1;
 	memcpy(buffer, *argv, alen);
 
 	while (*++argv != NULL) {
 		alen = strlen(*argv);
 		blen = strlen(buffer);
-		if (alen + blen + 1 >= MAXBUF)
+		if (alen + blen + 1 >= _POSIX_MAX_INPUT)
 			return -1;
 		buffer[blen] = ' ';
 		memcpy(buffer + blen + 1, *argv, alen);
@@ -172,13 +170,13 @@ display()
 int
 title()
 {
-	char title[MAXBUF];
+	char title[_POSIX_MAX_INPUT];
 	int tlen, tlen2;
 
 	time_t tval = time(NULL);
 	struct tm *tm = localtime(&tval);
 
-	if (cols + 1 >= MAXBUF)
+	if (cols + 1 >= _POSIX_MAX_INPUT)
 		return -1;
 
 	snprintf(title, cols, " Every %ds : %s", period, buffer);
