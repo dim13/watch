@@ -7,14 +7,17 @@
 .Nd execute program periodically, showing output fullscreen
 .Sh SYNOPSIS
 .Nm watch
-.Op Fl v
-.Op Fl s Ar <seconds>
+.Op Fl vns Ar <seconds>
 .Op Ar command
 .Sh DESCRIPTION
-The
 .Nm
-utility allow you to watch a program as it changes.
-By default it updates it self every 2 seconds.
+runs
+.Ar command
+repeatedly, displaying its output fullscreen.
+This allow you to watch a
+.Ar command
+output as it changes.
+By default it updates output every 2 seconds.
 .Pp
 The
 .Nm
@@ -23,10 +26,12 @@ will end with keyboard interrupt
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
-.It Fl s Ar <seconds>
-Delay in seconds between screen refresh.
 .It Fl v
 Show version and exit.
+.It Fl n
+Show no title.
+.It Fl s Ar <seconds>
+Delay in seconds between screen refresh.
 .El
 .Pp
 .Sh EXAMPLE
@@ -34,6 +39,8 @@ Show version and exit.
 -s 1 ps x
 .Pp
 .Sh AUTHORS
-The
+The original
 .Nm
-utility was written by demon <demon@vhost.dyndns.org> in 2003.
+was written by Tony Rems <rembo@unisoft.com> in 1991,
+with mods and corrections by Francois Pinard.
+It was rewritten by demon <demon@vhost.dyndns.org> in 2003.

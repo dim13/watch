@@ -1,5 +1,9 @@
 /* $Id$ */
-/* watch - execute program periodicaly, showing output fullscreen */
+/*
+ * watch -- execute program repeatedly, displaying output fullscreen
+ * Based on the original 1991 'watch' by Tony Rems <rembo@unisoft.com>
+ * (with mods and corrections by Francois Pinard)
+ */
 /*
  * Copyright (c) 2003 demon <demon@vhost.dymdns.org>
  *
@@ -25,28 +29,30 @@
 #include <curses.h>
 #define MAXBUF 255
 
-static char copyright[] = "(c) 2003 demon <demon@vhost.dyndns.org>";
-static char version[] = "0.2";
+static char *copyright = "(c) 2003 demon <demon@vhost.dyndns.org>";
+static char *version   = "0.2";
 extern char *__progname;
+
 time_t tval;
 int die_flag;
+int period=2;
 
+void title();
 void usage();
 void die();
 
-int main (int argc, char *argv[]) {
-    int period=2;
+int main (int argc, char **argv) {
+    int n_flag=0;
     char ch;
     char cmd[MAXBUF];
     char buf[MAXBUF];
-    char curtime[30];
     FILE *pipe;
     
     signal(SIGINT, die);
     signal(SIGTERM, die);
     signal(SIGHUP, die);
     
-    while ((ch = getopt(argc, argv, "s:v")) != -1)
+    while ((ch = getopt(argc, argv, "s:vn")) != -1)
 	switch (ch) {
 	    case 'v':
 		(void)fprintf(stderr, "%s %s %s\n", __progname, version, copyright);
@@ -56,6 +62,9 @@ int main (int argc, char *argv[]) {
 		period = atoi(optarg);
 		if(period < 1)
 		    usage();
+		break;
+	    case 'n':
+		n_flag=1;
 		break;
 	    case '?':
 	    default:
@@ -80,11 +89,9 @@ int main (int argc, char *argv[]) {
     if(strlen(cmd)) {
 	initscr();
 	while(!die_flag) {
-	    time(&tval);
-	    strncpy(curtime, ctime(&tval), sizeof(curtime)-1);
-	    curtime[strlen(curtime) - 6] = '\0';
 	    move(0,0);
-	    printw("%s\tEvery %ds: %s\n\n", curtime, period, cmd);
+	    if(!n_flag)
+	        title(cmd);
 	    pipe = popen(cmd, "r");
 	    while(fgets(buf, sizeof(buf), pipe))
 		printw("%s",buf);
@@ -100,8 +107,17 @@ int main (int argc, char *argv[]) {
     exit(0);
 }
 
+void title(char **cmd) {
+    char curtime[30];
+    time(&tval);
+    strncpy(curtime, ctime(&tval), sizeof(curtime)-1);
+    curtime[strlen(curtime) - 6] = '\0';
+    printw("%s\tEvery %ds: %s", curtime, period, cmd);
+    move(2,0);
+}
+
 void usage() {
-    (void)fprintf(stderr, "Usage: %s [-s <seconds> | -v ] [command]\n", __progname);
+    (void)fprintf(stderr, "Usage: %s [-s <seconds> ] [ -vn ] [command]\n", __progname);
     exit (1);
 }
 
