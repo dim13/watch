@@ -27,29 +27,32 @@
 #include <time.h>
 #include <signal.h>
 #include <curses.h>
+#include <sys/ioctl.h>
 #define DEBUG 1
 
 static char *copyright = "(c) 2003 demon <demon@vhost.dyndns.org>";
-static char *version   = "0.3 alpha";
+static char *version   = "0.3 alpha 2";
 extern char *__progname;
 
-short die_flag;
-short n_flag=0;
-int period=2;
+unsigned short die_flag = 0;
+unsigned short n_flag = 0;
+unsigned short color_flag = 0;;
+unsigned int period = 2;
 
 void loop(char *);
 void title(char *);
-void usage();
+void resize();
 void die();
+void usage();
 
 int main (int argc, char **argv) {
     char ch;
-    char *cmd;
+    char *cmd = NULL;
 
     signal(SIGINT, die);
     signal(SIGTERM, die);
     signal(SIGHUP, die);
-
+    signal(SIGWINCH, resize);
     
     while ((ch = getopt(argc, argv, "s:vn")) != -1)
 	switch (ch) {
@@ -80,8 +83,14 @@ int main (int argc, char **argv) {
 	    cmd[strlen(cmd)]= ' ';
 	    memcpy(cmd + strlen(cmd), *argv, strlen(*argv));
  	}
+
+        initscr();
+	if(has_colors())
+	    color_flag = 1;
 	loop(cmd);
+        endwin();
 	free(cmd);
+
     } else
 	usage();
 
@@ -91,38 +100,74 @@ int main (int argc, char **argv) {
 void loop(char *cmd) {
     char buf;
     FILE *pipe;
+    int i;
 
-    initscr();
     while(!die_flag) {
-        move(0,0);
-        if(!n_flag)
+	i = 0;
+	clear();
+        if(!n_flag) {
             title(cmd);
+	    i += 2;
+	}
         pipe = popen(cmd, "r");
-        while((buf = fgetc(pipe)) != EOF)
+        while((buf = fgetc(pipe)) != EOF) {
+	    if((buf == '\0') || (buf == '\n'))
+		i++;
+	    if(i >= LINES)
+		break;
     	    printw("%c",buf);
-	refresh();
+	}
 	pclose(pipe);
-	sleep(period);
+	refresh();
+        sleep(period);
     }
-    endwin();
 }
 
 void title(char *cmd) {
-    char *curtime;
-    time_t tval;
+    char *title = NULL;
+    time_t tval = time(NULL);
+    int len;
 
-    time(&tval);
-    curtime = strdup(ctime(&tval));
-    curtime[strlen(curtime) - 6] = '\0';
-    printw("%s\tEvery %ds: %s", curtime, period, cmd);
+    struct tm *tm = localtime(&tval);
+
+    title = (char *)malloc(COLS + 1);
+    sprintf(title, " Every %ds   %s", period, cmd);
+    len = strlen(title);
+    if((COLS - len) > 0)
+        memset(title + len, ' ', COLS - len);
+    len = strlen(title);
+    sprintf(title + len - 9, "%.2d:%.2d:%.2d ",
+	    tm->tm_hour, tm->tm_min, tm->tm_sec);
+    title[COLS] = '\0';
+
+    if(color_flag)
+	attron(A_REVERSE);
+    
+    printw("%s", title);
+    
+    if(color_flag)
+	attroff(A_REVERSE);
+
+    free(title);
     move(2,0);
+}
+
+void resize() {
+    struct winsize ws;
+
+    if(!ioctl(NULL, TIOCGWINSZ, &ws)){
+	LINES = ws.ws_row;
+	COLS = ws.ws_col;
+        resizeterm(LINES, COLS);
+        clear();
+    }
+}
+
+void die() {
+    die_flag=1;
 }
 
 void usage() {
     (void)fprintf(stderr, "Usage: %s [-vns <seconds>] [command]\n", __progname);
     exit (1);
-}
-
-void die() {
-    die_flag=1;
 }
