@@ -167,12 +167,13 @@ readcmd(void)
 static void
 display(int ignored)
 {
-	int line_count = 0;
+	int line_count;
 	char output[BUFSIZE];
 	FILE *pipe;
 
 	(void) ignored;
-	move(0,0);
+	move(0, 0);
+	line_count = 0;
 
 	if (f_notitle == 0) {
 		title();
