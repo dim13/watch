@@ -1,3 +1,4 @@
+/*	$OpenBSD: watch.c,v 1.3 2003/06/08 06:46:04 demon Exp $	*/
 /* From: Tony Rems <rembo@unisoft.com>
    Newsgroups: comp.sources.unix
    Subject: v24i084:  Repeatedly execute a program under curses(3)
@@ -10,40 +11,36 @@
 #include <stdio.h>
 #include <signal.h>
 #include <sys/fcntl.h>
+#include <time.h>
 
 int die_flag;
 void die ();
+int usage ();
 
 extern FILE *popen ();
 extern int pclose ();
-extern long time ();
+extern time_t time ();
 extern char *ctime ();
 
 /*-----------------------------------------.
 | Decode parameters and launch execution.  |
 `-----------------------------------------*/
 
-char *program_name;
+extern char *__progname;
 
-void
-main (argc, argv)
-     int argc;
-char *argv[];
+int
+main (int argc, char *argv[])
 {
   int hor = 1, ver = 0;
   FILE *piper;
   char buf[180];
   char cmd[128];
   int count = 1;
-  long timer;
+  time_t timer;
   int nsecs = 2;
 
-  program_name = argv[0];
   if (argc < 2)
-    {
-      fprintf (stderr, "Usage: %s COMMAND [-n SLEEP] [ARG ...]\n", argv[0]);
-      exit (1);
-    }
+        usage ();
 
   /* If -n is specified, convert the next argument to the numver for the
      number of seconds.  */
@@ -53,10 +50,7 @@ char *argv[];
       nsecs = atoi (argv[2]);
       count = 3;
       if (nsecs == 0 || argc < 4)
-	{
-	  fprintf (stderr, "Usage: %s COMMAND [-n SLEEP] [ARG ...]\n", argv[0]);
-	  exit (1);
-	}
+        usage ();
     }
 
   /* Build command string to give to popen.  */
@@ -137,4 +131,11 @@ void
 die ()
 {
   die_flag = 1;
+}
+
+int
+usage ()
+{
+	  fprintf (stderr, "Usage: %s COMMAND [-n SLEEP] [ARG ...]\n", __progname);
+	  exit (1);
 }
