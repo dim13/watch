@@ -48,11 +48,11 @@ static const char version[] = "0.6.1";
 
 static int readargs(char **);
 static int readcmd(void);
-static void display();
+static void display(int);
 static int title(void);
-static void resize();
+static void resize(int);
 static void settimer(int);
-static void die();
+static void die(int);
 static __dead void usage(void);
 
 extern char *__progname;
@@ -165,13 +165,15 @@ readcmd(void)
 }
 
 static void
-display()
+display(int ignored)
 {
 	int line_count = 0;
 	char output[BUFSIZE];
 	FILE *pipe;
 
+	(void) ignored;
 	clear();
+
 	if (f_notitle == 0) {
 		title();
 		line_count = 2;
@@ -227,11 +229,12 @@ title(void)
 }
 
 static void
-resize()
+resize(int ignored)
 {
 	int save_errno = errno;
 	struct winsize ws;
 
+	(void) ignored;
 	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != -1) {
 		lines = ws.ws_row;
 		cols = ws.ws_col;
@@ -255,8 +258,9 @@ settimer(int wait)
 }
 
 static void
-die()
+die(int ignored)
 {
+	(void) ignored;
 	f_die = 1;
 }
 
