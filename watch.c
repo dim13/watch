@@ -61,7 +61,6 @@ char buffer[BUFSIZE];
 int period = 2;
 int f_die = 0;
 int f_notitle = 0;
-int f_color = 0;
 int lines;
 int cols;
 
@@ -105,10 +104,7 @@ main(int argc, char **argv)
 	initscr();
 	lines = LINES;
 	cols = COLS;
-
 	hold_curs = curs_set(0);
-	if (has_colors())
-		f_color = 1;
 
 	signal(SIGALRM, display);
 	settimer(period);
@@ -220,11 +216,9 @@ title(void)
 	    tm->tm_hour, tm->tm_min, tm->tm_sec);
 	title[cols] = '\0';
 
-	if (f_color == 1)
-		attron(A_REVERSE);
+	attron(A_BOLD);
 	addstr(title);
-	if (f_color == 1)
-		attroff(A_REVERSE);
+	attroff(A_BOLD);
 
 	move(2, 0);
 	return 0;
