@@ -1,6 +1,6 @@
 /* $Id$ */
 /*
- * Copyright (c) 2003, 2004 demon <demon@vhost.dymdns.org>
+ * Copyright (c) 2003, 2004, 2005 demon <demon@vhost.dymdns.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,11 +20,17 @@
  * (with mods and corrections by Francois Pinard)
  */
 
+#ifndef lint
 static const char copyright[] =
-"@(#) Copyright (c) 2003, 2004 demon <demon@vhost.dyndns.org>\n";
+"@(#)Copyright (c) 2003-2005 demon@vhost.dyndns.org\n";
+#endif /* not lint */
+
+#ifndef lint
 static const char rcsid[] =
 "$Id$";
-static const char version[] = "0.6.3";
+#endif /* not lint */
+
+static const char version[] = "0.7";
 
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -42,6 +48,7 @@ static const char version[] = "0.6.3";
 #define __dead __volatile
 #endif
 
+#define PERIOD	2	/* default delay between screen updates in seconds */
 #define BUFSIZE _POSIX_MAX_INPUT
 
 static int readargs(char **);
@@ -53,14 +60,16 @@ static void settimer(int);
 static void die(int);
 static __dead void usage(void);
 
-extern char *__progname;
-char buffer[BUFSIZE];
-
-int period = 2;
-int f_die = 0;
-int f_notitle = 0;
-int lines;
-int cols;
+static bool f_die;
+static bool f_title;
+static int period;
+static int ret;
+static int lines;
+static int cols;
+static char buffer[BUFSIZE];
+static char input[BUFSIZE + 5];
+static char output[BUFSIZE];
+extern char *__progname;	/* from crt0.o */
 
 int
 main(int argc, char **argv)
@@ -68,20 +77,24 @@ main(int argc, char **argv)
 	int hold_curs;
 	char ch;
 
-	while ((ch = getopt(argc, argv, "+s:vn")) != -1)
+	f_die = FALSE;
+	f_title = TRUE;
+	period = PERIOD;
+
+	while ((ch = getopt(argc, argv, "+s:tv")) != -1)
 		switch (ch) {
-		case 'v':
-			(void) fprintf(stderr, "%s %s %s",
-			    __progname, version, copyright + 5);
-			exit(1);
-			break;
 		case 's':
 			period = atoi(optarg);
 			if (period < 1)
 				usage();
+				/* NOTREACHED */
 			break;
-		case 'n':
-			f_notitle = 1;
+		case 't':
+			f_title = FALSE;
+			break;
+		case 'v':
+			(void) fprintf(stderr, "%s %s\n", __progname, version);
+			exit(1);
 			break;
 		case '?':
 		default:
@@ -94,6 +107,9 @@ main(int argc, char **argv)
 	if (readargs(argv) == -1)
 		if (readcmd() == -1)
 			usage();
+			/* NOTREACHED */
+
+	snprintf(input, sizeof(input), "%s 2>&1", buffer);
 
 	signal(SIGINT, die);
 	signal(SIGTERM, die);
@@ -109,12 +125,14 @@ main(int argc, char **argv)
 	raise(SIGALRM);
 	settimer(period);
 
-	while (f_die == 0)
+	while (f_die == FALSE)
 		pause();
 
 	curs_set(hold_curs);
 	endwin();
-	exit(0);
+	if (ret != 0)
+		fprintf(stderr, "%s: %s", __progname, output);
+	exit(ret >> 8);		/* XXX */
 }
 
 static int
@@ -161,25 +179,26 @@ static void
 display(int ignored)
 {
 	int line_count;
-	char output[BUFSIZE];
 	FILE *pipe;
 
 	(void) ignored;
 	move(0, 0);
 	line_count = 0;
 
-	if (f_notitle == 0) {
+	if (f_title != FALSE) {
 		title();
 		line_count = 2;
 	}
-	pipe = popen(buffer, "r");
+	if ((pipe = popen(input, "r")) == NULL)
+		raise(SIGINT);
 
 	while (fgets(output, sizeof(output), pipe) != NULL &&
 	    line_count < lines && cols < (int) sizeof(output)) {
 		output[cols] = '\0';
 		mvaddstr(line_count++, 0, output);
 	}
-	pclose(pipe);
+	if ((ret = pclose(pipe)) != 0)
+		raise(SIGINT);
 	clrtobot();
 	refresh();
 }
@@ -251,13 +270,13 @@ static void
 die(int ignored)
 {
 	(void) ignored;
-	f_die = 1;
+	f_die = TRUE;
 }
 
 static __dead void
 usage(void)
 {
 	(void) fprintf(stderr,
-	    "usage: %s [-v] [-n] [-s <seconds>] [command]\n", __progname);
+	    "usage: %s [-tv] [-s time] [command]\n", __progname);
 	exit(1);
 }
