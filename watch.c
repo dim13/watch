@@ -26,12 +26,6 @@ static const char rcsid[] =
 "$Id$";
 static const char version[] = "0.6.1";
 
-#if defined(__linux__)
-#define __dead __volatile
-#endif
-
-#define BUFSIZE _POSIX_MAX_INPUT
-
 #include <sys/ioctl.h>
 #include <sys/time.h>
 
@@ -45,6 +39,12 @@ static const char version[] = "0.6.1";
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+
+#if defined(__linux__)
+#define __dead __volatile
+#endif
+
+#define BUFSIZE _POSIX_MAX_INPUT
 
 static int readargs(char **);
 static int readcmd(void);
