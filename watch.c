@@ -85,14 +85,14 @@ int main (int argc, char **argv) {
     if(*argv) {
 	cmd.b_size = strlen(*argv) + 1;
 	if(!(cmd.b_val = (char *)malloc(cmd.b_size)))
-	    err(1,NULL);
+	    perror("malloc");
 	memcpy(cmd.b_val, *argv, strlen(*argv));
 
 	while(*++argv) {
 	    a_len = strlen(*argv);
 	    cmd.b_size += a_len + 1;
 	    if(!(cmd.b_val = (char *)realloc(cmd.b_val, cmd.b_size)))
-		err(1,NULL);
+		perror("realloc");
 	    c_len = strlen(cmd.b_val);
 	    cmd.b_val[c_len] = ' ';
 	    memcpy(cmd.b_val + c_len + 1, *argv, a_len);
@@ -109,7 +109,7 @@ int main (int argc, char **argv) {
         endwin();
 
 	if(!free(cmd.b_val))
-	    err(1,NULL);
+	    perror("free");
 	else
 	    cmd.b_size = 0;
 
@@ -170,7 +170,7 @@ void title(char *cmd) {
 
     title.b_size = COLS + 1;
     if(!(title.b_val = (char *)malloc(title.b_size)))
-	err(1,NULL);
+	perror("malloc");
 
     snprintf(title.b_val, COLS," Every %ds : %s", period, cmd);
 
@@ -199,7 +199,7 @@ void title(char *cmd) {
 	attroff(A_REVERSE);
 
     if(!free(title.b_val))
-	err(1,NULL);
+	perror("free");
     else
 	title.b_size = 0;
 
