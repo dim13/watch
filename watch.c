@@ -28,16 +28,15 @@
 #include <signal.h>
 #include <curses.h>
 #include <sys/ioctl.h>
-#define DEBUG 1
 
 static char *copyright = "(c) 2003 demon <demon@vhost.dyndns.org>";
-static char *version   = "0.3 alpha 2";
+static char *version   = "0.3 alpha 3";
 extern char *__progname;
 
+unsigned int period = 2;
 unsigned short die_flag = 0;
 unsigned short n_flag = 0;
 unsigned short color_flag = 0;;
-unsigned int period = 2;
 
 void loop(char *);
 void title(char *);
@@ -45,9 +44,17 @@ void resize();
 void die();
 void usage();
 
+struct buf {
+    char *b_val;
+    unsigned int b_size;
+};
+
 int main (int argc, char **argv) {
+    unsigned int a_len;
+    unsigned int c_len;
+    int hold_curs;
     char ch;
-    char *cmd = NULL;
+    struct buf cmd;
 
     signal(SIGINT, die);
     signal(SIGTERM, die);
@@ -76,20 +83,35 @@ int main (int argc, char **argv) {
     argv += optind;
 
     if(*argv) {
-	cmd = (char *)malloc(strlen(*argv) + 1);
-	memcpy(cmd, *argv, strlen(*argv));
+	cmd.b_size = strlen(*argv) + 1;
+	if(!(cmd.b_val = (char *)malloc(cmd.b_size)))
+	    err(1,NULL);
+	memcpy(cmd.b_val, *argv, strlen(*argv));
+
 	while(*++argv) {
-	    cmd = (char *)realloc(cmd, strlen(cmd) + strlen(*argv) + 2);
-	    cmd[strlen(cmd)]= ' ';
-	    memcpy(cmd + strlen(cmd), *argv, strlen(*argv));
+	    a_len = strlen(*argv);
+	    cmd.b_size += a_len + 1;
+	    if(!(cmd.b_val = (char *)realloc(cmd.b_val, cmd.b_size)))
+		err(1,NULL);
+	    c_len = strlen(cmd.b_val);
+	    cmd.b_val[c_len] = ' ';
+	    memcpy(cmd.b_val + c_len + 1, *argv, a_len);
  	}
 
         initscr();
+	hold_curs = curs_set(NULL);
 	if(has_colors())
 	    color_flag = 1;
-	loop(cmd);
+
+	loop(cmd.b_val);
+
+	curs_set(hold_curs);
         endwin();
-	free(cmd);
+
+	if(!free(cmd.b_val))
+	    err(1,NULL);
+	else
+	    cmd.b_size = 0;
 
     } else
 	usage();
@@ -98,30 +120,39 @@ int main (int argc, char **argv) {
 }
 
 void loop(char *cmd) {
-    char buf;
+    unsigned int char_count;
+    unsigned int line_count;
+    char ch;
     FILE *pipe;
-    int i,j;
 
     while(!die_flag) {
-	i = 0; j = 0;
+	char_count = 0;
+	line_count = 0;
+
 	clear();
+
         if(!n_flag) {
             title(cmd);
-	    i += 2;
+	    line_count += 2;
 	}
+
         pipe = popen(cmd, "r");
-        while((buf = fgetc(pipe)) != EOF) {
-	    if((buf == '\0') || (buf == '\n')) {
-	    	i++;
-		j = 0;
+
+        while((ch = fgetc(pipe)) != EOF) {
+	    if((ch == '\0') || (ch == '\n')) {
+	    	line_count++;
+		char_count = 0;
 	    }
-	    if(i >= LINES)
+
+	    if(line_count >= LINES)
 		break;
-	    if(j < COLS) {
-	        printw("%c",buf);
-		j++;
+
+	    if(char_count < COLS) {
+	        printw("%c",ch);
+		char_count++;
 	    }
 	}
+
 	pclose(pipe);
 	refresh();
         sleep(period);
@@ -129,38 +160,56 @@ void loop(char *cmd) {
 }
 
 void title(char *cmd) {
-    char *title = NULL;
-    time_t tval = time(NULL);
-    int len;
+    unsigned int t_len;
+    unsigned int t_len2;
 
+    time_t tval = time(NULL);
+
+    struct buf title;
     struct tm *tm = localtime(&tval);
 
-    title = (char *)malloc(COLS + 1);
-    snprintf(title, COLS," Every %ds   %s", period, cmd);
-    len = strlen(title);
-    if((COLS - len) > 0)
-        memset(title + len, ' ', COLS - len);
-    len = strlen(title);
-    snprintf(title + len - 9, 10, "%.2d:%.2d:%.2d ",
+    title.b_size = COLS + 1;
+    if(!(title.b_val = (char *)malloc(title.b_size)))
+	err(1,NULL);
+
+    snprintf(title.b_val, COLS," Every %ds : %s", period, cmd);
+
+    t_len = strlen(title.b_val);
+    t_len2 = COLS - t_len;
+
+    if(t_len2 > 0)
+        memset(title.b_val + t_len, ' ', t_len2);
+
+    if(t_len2 < 12)
+	title.b_val[COLS - 12] = '>';
+
+    t_len = strlen(title.b_val);
+
+    snprintf(title.b_val + t_len - 11, 12, "  %.2d:%.2d:%.2d ",
 	    tm->tm_hour, tm->tm_min, tm->tm_sec);
-    title[COLS] = '\0';
+
+    title.b_val[COLS] = '\0';
 
     if(color_flag)
 	attron(A_REVERSE);
     
-    printw("%s", title);
+    printw("%s", title.b_val);
     
     if(color_flag)
 	attroff(A_REVERSE);
 
-    free(title);
+    if(!free(title.b_val))
+	err(1,NULL);
+    else
+	title.b_size = 0;
+
     move(2,0);
 }
 
 void resize() {
     struct winsize ws;
 
-    if(!ioctl(NULL, TIOCGWINSZ, &ws)){
+    if(!ioctl(NULL, TIOCGWINSZ, &ws)) {
 	LINES = ws.ws_row;
 	COLS = ws.ws_col;
         resizeterm(LINES, COLS);
