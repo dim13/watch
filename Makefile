@@ -3,7 +3,7 @@
 PROG=	watch
 BINDIR=	/usr/local/bin
 MAN=	watch.1
-PDADD= ${LIBCURSES}
+DPADD= ${LIBCURSES}
 LDADD= -lcurses
 
 . include <bsd.prog.mk>
