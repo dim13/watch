@@ -222,6 +222,6 @@ void die() {
 }
 
 void usage() {
-    (void)fprintf(stderr, "Usage: %s [-vns <seconds>] [command]\n", __progname);
+    (void)fprintf(stderr, "Usage: %s [-v] [-n] [-s <seconds>] command\n", __progname);
     exit (1);
 }
