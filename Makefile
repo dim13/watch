@@ -2,7 +2,7 @@
 
 PROG=	watch
 BINDIR=	/usr/local/bin
-NOMAN=	watch.1
+MAN=	watch.1
 PDADD= ${LIBCURSES}
 LDADD= -lcurses
 
