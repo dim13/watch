@@ -100,10 +100,10 @@ int main (int argc, char **argv) {
 void loop(char *cmd) {
     char buf;
     FILE *pipe;
-    int i;
+    int i,j;
 
     while(!die_flag) {
-	i = 0;
+	i = 0; j = 0;
 	clear();
         if(!n_flag) {
             title(cmd);
@@ -111,11 +111,16 @@ void loop(char *cmd) {
 	}
         pipe = popen(cmd, "r");
         while((buf = fgetc(pipe)) != EOF) {
-	    if((buf == '\0') || (buf == '\n'))
-		i++;
+	    if((buf == '\0') || (buf == '\n')) {
+	    	i++;
+		j = 0;
+	    }
 	    if(i >= LINES)
 		break;
-    	    printw("%c",buf);
+	    if(j < COLS) {
+	        printw("%c",buf);
+		j++;
+	    }
 	}
 	pclose(pipe);
 	refresh();
@@ -131,12 +136,12 @@ void title(char *cmd) {
     struct tm *tm = localtime(&tval);
 
     title = (char *)malloc(COLS + 1);
-    sprintf(title, " Every %ds   %s", period, cmd);
+    snprintf(title, COLS," Every %ds   %s", period, cmd);
     len = strlen(title);
     if((COLS - len) > 0)
         memset(title + len, ' ', COLS - len);
     len = strlen(title);
-    sprintf(title + len - 9, "%.2d:%.2d:%.2d ",
+    snprintf(title + len - 9, 10, "%.2d:%.2d:%.2d ",
 	    tm->tm_hour, tm->tm_min, tm->tm_sec);
     title[COLS] = '\0';
 
