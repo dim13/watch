@@ -3,7 +3,7 @@
 PROG=	watch
 BINDIR=	/usr/local/bin
 MAN=	watch.1
-CPPFLAGS+=-ggdb
+#CFLAGS+=-ggdb
 PDADD= ${LIBCURSES}
 LDADD= -lcurses
 
