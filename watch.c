@@ -1,141 +1,95 @@
-/*	$OpenBSD: watch.c,v 1.3 2003/06/08 06:46:04 demon Exp $	*/
-/* From: Tony Rems <rembo@unisoft.com>
-   Newsgroups: comp.sources.unix
-   Subject: v24i084:  Repeatedly execute a program under curses(3)
-   Date: 26 Mar 91 21:41:30 GMT
+/*
+ * watch - execute program periodicaly, showing output fullscreen
+ *
+ * Copyright (C) 2003 demon <demon@vhost.dyndns.org>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ */
 
-   Slighty modified, and corrected, François Pinard, 91-04.
-*/
-
-#include <curses.h>
+#include <err.h>
 #include <stdio.h>
-#include <signal.h>
-#include <sys/fcntl.h>
+#include <unistd.h>
+#include <string.h>
 #include <time.h>
+#define MAXBUF 255
 
-int die_flag;
-void die ();
-int usage ();
-
-extern FILE *popen ();
-extern int pclose ();
-extern time_t time ();
-extern char *ctime ();
-
-/*-----------------------------------------.
-| Decode parameters and launch execution.  |
-`-----------------------------------------*/
-
+static char copyright[] = "Copyright (C) 2003 demon (demon@vhost.dyndns.org)";
+static char version[] = "0.1";
+static char terms[] = "This program comes with ABSOLUTELY NO WARANTY.\n\
+This is a free software, and you are welcome to redistribute it\n\
+under certain conditions. See the file COPYING for deatails.";
 extern char *__progname;
+time_t tval;
 
-int
-main (int argc, char *argv[])
-{
-  int hor = 1, ver = 0;
-  FILE *piper;
-  char buf[180];
-  char cmd[128];
-  int count = 1;
-  time_t timer;
-  int nsecs = 2;
+void usage(void);
 
-  if (argc < 2)
-        usage ();
+int main (int argc, char *argv[]) {
+    int i;
+    int period=5;
+    char ch;
+    char buf[MAXBUF];
+    char curtime[30];
+    while ((ch = getopt(argc, argv, "s:v")) != -1)
+	switch (ch) {
+	    case 'v':
+		(void)fprintf(stderr, "%s version %s %s\n", __progname, version, copyright);
+		(void)fprintf(stderr, "%s\n", terms);
+		exit(1);
+		break;
+	    case 's':
+		period = atoi(optarg);
+		if(period < 1)
+		    usage();
+		break;
+	    case '?':
+	    default:
+		usage();
+	}
+    argc -= optind;
+    argv += optind;
 
-  /* If -n is specified, convert the next argument to the numver for the
-     number of seconds.  */
-
-  if (strcmp (argv[1], "-n") == 0)
-    {
-      nsecs = atoi (argv[2]);
-      count = 3;
-      if (nsecs == 0 || argc < 4)
-        usage ();
+    if(*argv) {
+        strcpy(buf, *argv);
+	while(*++argv) {
+	    strcat(buf, " ");
+	    strcat(buf, *argv);
+	}
+    } else {
+	if(isatty(fileno(stdin)))
+	    fprintf(stderr, "Command: ");
+	(void)fgets(buf, sizeof(buf), stdin);
+	buf[strlen(buf) - 1] = '\0';
     }
 
-  /* Build command string to give to popen.  */
-  
-  bzero (cmd, sizeof (cmd));
-  strcpy (cmd, argv[count]);
-  while (++count < argc)
-    {
-      strcat (cmd, " ");
-      strcat (cmd, argv[count]);
+    if(strlen(buf)) {
+	while(1) {
+	    time(&tval);
+	    strcpy(curtime,ctime(&tval));
+	    curtime[strlen(curtime) - 6] = '\0';
+	    printf("\e[H\e[2J%s\tEvery %ds: %s\n\n", curtime, period, buf);
+	    system(buf);
+	    sleep(period);
+	}
+    } else {
+	usage();
     }
 
-  /* Catch keyboard interrupts so we can put tty back in a sane state.  */
-  
-  signal (SIGINT, die);
-  signal (SIGTERM, die);
-  signal (SIGHUP, die);
-
-  /* Set up tty for curses use.  */
-
-  initscr ();
-  nonl ();
-  noecho ();
-  crmode ();
-
-  die_flag = 0;
-  while (!die_flag)
-    {
-
-      /* Put up time interval and current time.  */
-
-      hor = 1;
-      move (hor, ver);
-      time (&timer);
-      printw ("Every %d seconds\t\t%s\t\t%s", nsecs, cmd, ctime (&timer));
-      hor = 3;
-
-      /* Open pipe to command. */
-      
-      if ((piper = popen (cmd, "r")) == (FILE *)NULL)
-	{
-	  perror ("popen");
-	  exit (2);
-	}
-
-      /* Read in output from the command and make sure that it will fit on 1
-	 screen.  */ 
-
-      while ((fgets(buf, sizeof (buf), piper) != NULL) && hor < LINES)
-	{
-	  buf[COLS-1] = '\0';
-	  mvaddstr (hor, ver, buf);
-	  clrtoeol ();
-	  hor++;
-	}
-      pclose (piper);
-
-      if (hor < LINES)
-	{
-	  move (hor, ver);
-	  clrtobot ();
-	}
-      refresh ();
-      sleep (nsecs);
-    }
-  nocrmode ();
-  echo ();
-  nl ();
-  endwin ();
-  exit (0);
+    exit(0);
 }
 
-/*------------------------------------.
-| Stop the program on any interrupt.  |
-`------------------------------------*/
-
-void
-die ()
-{
-  die_flag = 1;
-}
-
-int
-usage ()
-{
-	  fprintf (stderr, "Usage: %s COMMAND [-n SLEEP] [ARG ...]\n", __progname);
-	  exit (1);
+void usage(void) {
+    (void)fprintf(stderr, "Usage: %s [-s <seconds> | -v ] [command]\n", __progname);
+    exit (1);
 }

@@ -1,7 +1,5 @@
 PROG=	watch
 BINDIR=	/usr/local/bin
-NOMAN=	noman
-PDADD= ${LIBCURSES}
-LDADD= -lcurses
+MAN=	watch.1
 
 . include <bsd.prog.mk>

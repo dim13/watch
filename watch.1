@@ -1,0 +1,38 @@
+.Dd Juni 05, 2003
+.Dt WATCH 1
+.Os
+.Sh NAME
+.Nm watch
+.Nd execute program periodically, showing output fullscreen
+.Sh SYNOPSIS
+.Nm watch
+.Op Fl v
+.Op Fl s Ar <seconds>
+.Op Ar command
+.Sh DESCRIPTION
+The
+.Nm
+utility allow you to watch a program as it changes.
+By default it updates it self every 5 seconds.
+.Pp
+The
+.Nm
+will end with keyboard interrupt 
+.Pq Sq ^C
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl s Ar <seconds>
+Delay in seconds between screen refresh.
+.It Fl v
+Show version and exit.
+.El
+.Pp
+.Sh EXAMPLE
+.Nm
+-s 1 ps x
+.Pp
+.Sh AUTHORS
+The
+.Nm
+utility wass written by demon <demon@vhost.dyndns.org> in 2003.
