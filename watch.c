@@ -241,6 +241,7 @@ resize(int ignored)
 		cols = ws.ws_col;
 		resizeterm(lines, cols);
 	}
+	clear();
 	raise(SIGALRM);
 	errno = save_errno;
 }
