@@ -24,11 +24,13 @@ static const char copyright[] =
 "@(#) Copyright (c) 2003, 2004 demon <demon@vhost.dyndns.org>\n";
 static const char rcsid[] =
 "$Id$";
-static const char version[] = "0.5";
+static const char version[] = "0.6";
 
 #if defined(__linux__)
 #define __dead __volatile
 #endif
+
+#define BUFSIZE _POSIX_MAX_INPUT
 
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -45,6 +47,7 @@ static const char version[] = "0.5";
 #include <unistd.h>
 
 static int readargs(char **);
+static int readcmd(void);
 static void display();
 static int title(void);
 static void resize();
@@ -53,13 +56,14 @@ static void die();
 static __dead void usage(void);
 
 extern char *__progname;
-char buffer[_POSIX_MAX_INPUT];
+char buffer[BUFSIZE];
 
 int period = 2;
-int die_flag = 0;
-int n_flag = 0;
-int color_flag = 0;
-int lines, cols;
+int f_die = 0;
+int f_notitle = 0;
+int f_color = 0;
+int lines;
+int cols;
 
 int
 main(int argc, char **argv)
@@ -80,17 +84,19 @@ main(int argc, char **argv)
 				usage();
 			break;
 		case 'n':
-			n_flag = 1;
+			f_notitle = 1;
 			break;
 		case '?':
 		default:
 			usage();
+			/* NOTREACHED */
 		}
 	argc -= optind;
 	argv += optind;
 
 	if (readargs(argv) == -1)
-		usage();	/* does not return */
+		if (readcmd() == -1)
+			usage();
 
 	signal(SIGINT, die);
 	signal(SIGTERM, die);
@@ -102,7 +108,7 @@ main(int argc, char **argv)
 
 	hold_curs = curs_set(0);
 	if (has_colors())
-		color_flag = 1;
+		f_color = 1;
 
 	signal(SIGALRM, display);
 	settimer(period);
@@ -110,7 +116,7 @@ main(int argc, char **argv)
 
 	signal(SIGWINCH, resize);
 
-	while (die_flag == 0)
+	while (f_die == 0)
 		pause();
 
 	curs_set(hold_curs);
@@ -121,57 +127,62 @@ main(int argc, char **argv)
 static int
 readargs(char **argv)
 {
-	int alen, blen;
+	int alen;
+	int blen;
 
 	if (*argv == NULL)
 		return -1;
 
 	alen = strlen(*argv);
-	if (alen + 1 >= _POSIX_MAX_INPUT)
+	if (alen >= (int) sizeof(buffer))
 		return -1;
 	memcpy(buffer, *argv, alen);
 
 	while (*++argv != NULL) {
 		alen = strlen(*argv);
 		blen = strlen(buffer);
-		if (alen + blen + 1 >= _POSIX_MAX_INPUT)
+		if (alen + blen + 1 >= (int) sizeof(buffer))
 			return -1;
 		buffer[blen] = ' ';
 		memcpy(buffer + blen + 1, *argv, alen);
-		buffer[blen + alen + 1] = '\0';
+		buffer[alen + blen + 1] = '\0';
 	}
+	return 0;
+}
+
+static int
+readcmd(void)
+{
+	if (isatty(fileno(stdin)) == 0)
+		return -1;
+	(void) fprintf(stderr, "command: ");
+	if (fgets(buffer, sizeof(buffer), stdin) == NULL)
+		return -1;
+	buffer[strlen(buffer) - 1] = '\0';
+	if (strlen(buffer) == 0)
+		return -1;
 	return 0;
 }
 
 static void
 display()
 {
-	int char_count = 0;
 	int line_count = 0;
-	char ch;
+	char output[BUFSIZE];
 	FILE *pipe;
 
 	clear();
-
-	if (n_flag == 0) {
+	if (f_notitle == 0) {
 		title();
 		line_count = 2;
 	}
 	pipe = popen(buffer, "r");
 
-	while ((ch = fgetc(pipe)) != EOF) {
-		if (ch == '\0' || ch == '\n') {
-			line_count++;
-			char_count = 0;
-		}
-		if (line_count >= lines)
-			break;
-		if (char_count < cols) {
-			printw("%c", ch);
-			char_count++;
-		}
+	while (fgets(output, sizeof(output), pipe) != NULL &&
+	    line_count < lines && cols < (int) sizeof(output)) {
+		output[cols] = '\0';
+		mvaddstr(line_count++, 0, output);
 	}
-
 	pclose(pipe);
 	refresh();
 }
@@ -179,12 +190,13 @@ display()
 static int
 title(void)
 {
-	int tlen, tlen2;
-	char title[_POSIX_MAX_INPUT];
+	int tlen;
+	int tlen2;
+	char title[BUFSIZE];
 	time_t tval;
 	struct tm *tm;
 
-	if (cols + 1 >= _POSIX_MAX_INPUT || cols - 12 < 0)
+	if (cols >= (int) sizeof(title) || cols - 12 < 0)
 		return -1;
 
 	tval = time(NULL);
@@ -197,21 +209,17 @@ title(void)
 
 	if (tlen2 > 0)
 		memset(title + tlen, ' ', tlen2);
-
 	if (tlen2 < 12)
 		title[cols - 12] = '>';
 
 	snprintf(title + cols - 11, 12, "  %.2d:%.2d:%.2d ",
 	    tm->tm_hour, tm->tm_min, tm->tm_sec);
-
 	title[cols] = '\0';
 
-	if (color_flag == 1)
+	if (f_color == 1)
 		attron(A_REVERSE);
-
-	printw("%s", title);
-
-	if (color_flag == 1)
+	addstr(title);
+	if (f_color == 1)
 		attroff(A_REVERSE);
 
 	move(2, 0);
@@ -249,13 +257,13 @@ settimer(int wait)
 static void
 die()
 {
-	die_flag = 1;
+	f_die = 1;
 }
 
 static __dead void
 usage(void)
 {
-	(void) fprintf(stderr, "usage: %s [-v] [-n] [-s <seconds>] command\n",
-	    __progname);
+	(void) fprintf(stderr,
+	    "usage: %s [-v] [-n] [-s <seconds>] [command]\n", __progname);
 	exit(1);
 }
