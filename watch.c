@@ -61,7 +61,7 @@ main(int argc, char **argv)
 	int hold_curs;
 	char ch;
 
-	while ((ch = getopt(argc, argv, "s:vn")) != -1)
+	while ((ch = getopt(argc, argv, "+s:vn")) != -1)
 		switch (ch) {
 		case 'v':
 			(void) fprintf(stderr, "watch %s %s\n",
