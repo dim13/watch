@@ -30,7 +30,7 @@
 #include <sys/ioctl.h>
 
 static char *copyright = "(c) 2003 demon <demon@vhost.dyndns.org>";
-static char *version   = "0.3 alpha 3";
+static char *version   = "0.4";
 extern char *__progname;
 
 unsigned int period = 2;
