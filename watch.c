@@ -24,7 +24,7 @@ static const char copyright[] =
 "@(#) Copyright (c) 2003, 2004 demon <demon@vhost.dyndns.org>\n";
 static const char rcsid[] =
 "$Id$";
-static const char version[] = "0.6.1";
+static const char version[] = "0.6.2";
 
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -172,7 +172,7 @@ display(int ignored)
 	FILE *pipe;
 
 	(void) ignored;
-	clear();
+	move(0,0);
 
 	if (f_notitle == 0) {
 		title();
@@ -186,6 +186,7 @@ display(int ignored)
 		mvaddstr(line_count++, 0, output);
 	}
 	pclose(pipe);
+	clrtobot();
 	refresh();
 }
 
