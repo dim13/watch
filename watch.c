@@ -23,24 +23,35 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <signal.h>
+#include <curses.h>
 #define MAXBUF 255
 
 static char copyright[] = "Copyright (C) 2003 demon (demon@vhost.dyndns.org)";
-static char version[] = "0.1";
+static char version[] = "0.2";
 static char terms[] = "This program comes with ABSOLUTELY NO WARANTY.\n\
 This is a free software, and you are welcome to redistribute it\n\
 under certain conditions. See the file COPYING for deatails.";
 extern char *__progname;
 time_t tval;
+int die_flag;
 
-void usage(void);
+void usage();
+void die();
 
 int main (int argc, char *argv[]) {
     int i;
     int period=5;
     char ch;
+    char cmd[MAXBUF];
     char buf[MAXBUF];
     char curtime[30];
+    FILE *pipe;
+    
+    signal(SIGINT, die);
+    signal(SIGTERM, die);
+    signal(SIGHUP, die);
+    
     while ((ch = getopt(argc, argv, "s:v")) != -1)
 	switch (ch) {
 	    case 'v':
@@ -61,27 +72,34 @@ int main (int argc, char *argv[]) {
     argv += optind;
 
     if(*argv) {
-        strcpy(buf, *argv);
+        strcpy(cmd, *argv);
 	while(*++argv) {
-	    strcat(buf, " ");
-	    strcat(buf, *argv);
+	    strcat(cmd, " ");
+	    strcat(cmd, *argv);
 	}
     } else {
 	if(isatty(fileno(stdin)))
 	    fprintf(stderr, "Command: ");
-	(void)fgets(buf, sizeof(buf), stdin);
-	buf[strlen(buf) - 1] = '\0';
+	(void)fgets(cmd, sizeof(cmd), stdin);
+	cmd[strlen(cmd) - 1] = '\0';
     }
 
-    if(strlen(buf)) {
-	while(1) {
+    if(strlen(cmd)) {
+	initscr();
+	while(!die_flag) {
 	    time(&tval);
-	    strcpy(curtime,ctime(&tval));
+	    strcpy(curtime, ctime(&tval));
 	    curtime[strlen(curtime) - 6] = '\0';
-	    printf("\e[H\e[2J%s\tEvery %ds: %s\n\n", curtime, period, buf);
-	    system(buf);
+	    move(0,0);
+	    printw("%s\tEvery %ds: %s\n\n", curtime, period, cmd);
+	    pipe = popen(cmd, "r");
+	    while(fgets(buf, sizeof(buf), pipe))
+		printw("%s",buf);
+	    refresh();
+	    pclose(pipe);
 	    sleep(period);
 	}
+	endwin();
     } else {
 	usage();
     }
@@ -89,7 +107,11 @@ int main (int argc, char *argv[]) {
     exit(0);
 }
 
-void usage(void) {
+void usage() {
     (void)fprintf(stderr, "Usage: %s [-s <seconds> | -v ] [command]\n", __progname);
     exit (1);
+}
+
+void die() {
+    die_flag=1;
 }
