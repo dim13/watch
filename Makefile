@@ -1,3 +1,5 @@
+#	$Id$
+
 PROG=	watch
 BINDIR=	/usr/local/bin
 NOMAN=	watch.1
