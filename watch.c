@@ -24,14 +24,12 @@ static const char copyright[] =
 "@(#) Copyright (c) 2003, 2004 demon <demon@vhost.dyndns.org>\n";
 static const char rcsid[] =
 "$Id$";
-static const char version[] = "0.6.2";
+static const char version[] = "0.6.3";
 
 #include <sys/ioctl.h>
 #include <sys/time.h>
 
 #include <curses.h>
-#include <err.h>
-#include <errno.h>
 #include <limits.h>
 #include <signal.h>
 #include <stdio.h>
@@ -107,10 +105,9 @@ main(int argc, char **argv)
 	hold_curs = curs_set(0);
 
 	signal(SIGALRM, display);
-	settimer(period);
-	raise(SIGALRM);
-
 	signal(SIGWINCH, resize);
+	raise(SIGALRM);
+	settimer(period);
 
 	while (f_die == 0)
 		pause();
@@ -227,7 +224,6 @@ title(void)
 static void
 resize(int ignored)
 {
-	int save_errno = errno;
 	struct winsize ws;
 
 	(void) ignored;
@@ -238,20 +234,17 @@ resize(int ignored)
 	}
 	clear();
 	raise(SIGALRM);
-	errno = save_errno;
 }
 
 static void
 settimer(int wait)
 {
-	int save_errno = errno;
 	struct itimerval itv;
 
 	itv.it_value.tv_sec = wait;
 	itv.it_value.tv_usec = 0;
 	itv.it_interval = itv.it_value;
 	setitimer(ITIMER_REAL, &itv, NULL);
-	errno = save_errno;
 }
 
 static void
