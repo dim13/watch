@@ -1,6 +1,6 @@
 /* $Id$ */
 /*
- * Copyright (c) 2003, 2004, 2005 demon <demon@vhost.dymdns.org>
+ * Copyright (c) 2003, 2004, 2005 Dimitri Sokolyuk <demon@vhost.dymdns.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -19,11 +19,6 @@
  * Based on the original 1991 'watch' by Tony Rems <rembo@unisoft.com>
  * (with mods and corrections by Francois Pinard)
  */
-
-#ifndef lint
-static const char copyright[] =
-"@(#)Copyright (c) 2003-2005 demon@vhost.dyndns.org\n";
-#endif /* not lint */
 
 #ifndef lint
 static const char rcsid[] =
