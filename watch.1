@@ -7,42 +7,47 @@
 .Nd execute program periodically, showing output fullscreen
 .Sh SYNOPSIS
 .Nm watch
-.Op Fl tv
+.Op Fl nv
 .Op Fl s Ar time
 .Op Ar command
 .Sh DESCRIPTION
+The
 .Nm
-runs
+utility runs a
 .Ar command
 repeatedly and displays its output fullscreen.
 This allow you to watch an output of the
 .Ar command
 as it changes.
-The default delay between screen updates is 2 seconds.
-.Pp
-The
+If the
+.Ar command
+is absent,
 .Nm
-will terminate with keyboard interrupt 
-.Pq Sq ^C
+will prompt for it.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
 .It Fl s Ar time
 Set delay between screen updates in seconds.
-.It Fl t
-Disable output of title bar.
+The default delay is 2 seconds.
+.It Fl n
+Disable output of the title bar.
 .It Fl v
-Display version and exit.
+Display version and terminate.
 .El
+.Pp
+.Nm Watch
+will terminate with the keyboard interrupt
+.Pq Sq ^C
 .Pp
 .Sh EXAMPLE
 .Nm
 -s 1 ps
 .Pp
-.Sh AUTHORS
+.Sh HISTORY
 The original
 .Nm
 was written by Tony Rems <rembo@unisoft.com> in 1991,
 with mods and corrections by Francois Pinard.
-.Pp
-It was rewritten by Dimitri Sokolyuk <demon@vhost.dyndns.org> in 2003.
+It was rewritten completly from scratch by Dimitri Sokolyuk
+<demon@vhost.dyndns.org> in 2003.

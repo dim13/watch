@@ -1,6 +1,6 @@
 /* $Id$ */
 /*
- * Copyright (c) 2003, 2004, 2005 Dimitri Sokolyuk <demon@vhost.dymdns.org>
+ * Copyright (c) 2003 Dimitri Sokolyuk <demon@vhost.dymdns.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,18 +14,13 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-/*
- * watch -- execute program repeatedly, displaying output fullscreen
- * Based on the original 1991 'watch' by Tony Rems <rembo@unisoft.com>
- * (with mods and corrections by Francois Pinard)
- */
 
 #ifndef lint
 static const char rcsid[] =
 "$Id$";
 #endif /* not lint */
 
-static const char version[] = "0.7";
+static const char version[] = "1.0";
 
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -40,55 +35,80 @@ static const char version[] = "0.7";
 #include <unistd.h>
 
 #if defined(__linux__)
-#define __dead __volatile
+#define __dead	__volatile
 #endif
 
-#define PERIOD	2	/* default delay between screen updates in seconds */
-#define BUFSIZE _POSIX_MAX_INPUT
+#ifndef DELAY
+#define DELAY	2	/* default delay between screen updates in seconds */
+#endif
 
-static int readargs(char **);
-static int readcmd(void);
-static void display(int);
-static int title(void);
-static void resize(int);
-static void settimer(int);
-static void die(int);
-static __dead void usage(void);
+#define BUFSIZE		_POSIX_MAX_INPUT
 
-static bool f_die;
-static bool f_title;
-static int period;
-static int ret;
-static int lines;
-static int cols;
-static char buffer[BUFSIZE];
-static char input[BUFSIZE + 5];
-static char output[BUFSIZE];
-extern char *__progname;	/* from crt0.o */
+#define F_DIE		0x01
+#define F_TITLE		0x02
+#define F_UPDATE	0x04
+#define F_RESIZE	0x08
+
+int	flags = F_TITLE|F_UPDATE;
+
+extern	char *__progname;
+extern	int LINES, COLS;
+
+void	catchsig(int);
+int	readargs(char **, char *, size_t);
+int	readcmd(char *, size_t);
+int	display(WINDOW *, char *, char *, size_t);
+void	title(WINDOW *, char *, int);
+void	resize(void);
+void	settimer(int);
+__dead	void usage(void);
+
+void
+catchsig(int sig)
+{
+	switch (sig) {
+	case SIGWINCH:
+		flags |= F_RESIZE;
+		/* FALLTHROUGH */
+	case SIGALRM:
+		flags |= F_UPDATE;
+		break;
+	case SIGINT:
+	case SIGTERM:
+	case SIGHUP:
+	default:
+		flags |= F_DIE;
+		break;
+	}
+}
 
 int
 main(int argc, char **argv)
 {
-	int hold_curs;
-	char ch;
+	WINDOW	*titlew;
+	WINDOW	*outw;
+	struct	sigaction sa;
+	char	buf[BUFSIZE];
+	char	cmd[BUFSIZE + 5];
+	char	out[BUFSIZE];
+	int	hold_curs;
+	int	ret = -1;
+	int	delay = DELAY;
+	int	ch;
 
-	f_die = FALSE;
-	f_title = TRUE;
-	period = PERIOD;
-
-	while ((ch = getopt(argc, argv, "+s:tv")) != -1)
+	while ((ch = getopt(argc, argv, "+s:nv")) != -1)
 		switch (ch) {
 		case 's':
-			period = atoi(optarg);
-			if (period < 1)
+			delay = atoi(optarg);
+			if (delay < 1)
 				usage();
 				/* NOTREACHED */
 			break;
-		case 't':
-			f_title = FALSE;
+		case 'n':
+			flags &= ~F_TITLE;
 			break;
 		case 'v':
-			(void) fprintf(stderr, "%s %s\n", __progname, version);
+			(void)fprintf(stderr, "%s %s\n", __progname, version);
 			exit(1);
 			break;
 		case '?':
@@ -96,182 +116,184 @@ main(int argc, char **argv)
 			usage();
 			/* NOTREACHED */
 		}
+
 	argc -= optind;
 	argv += optind;
 
-	if (readargs(argv) == -1)
-		if (readcmd() == -1)
-			usage();
-			/* NOTREACHED */
+	memset(buf, 0, sizeof(buf));
 
-	snprintf(input, sizeof(input), "%s 2>&1", buffer);
+	if (readargs(argv, buf, sizeof(buf)) != 0 && readcmd(buf, sizeof(buf)) != 0)
+		usage();
+		/* NOTREACHED */
 
-	signal(SIGINT, die);
-	signal(SIGTERM, die);
-	signal(SIGHUP, die);
+	memcpy(cmd, buf, sizeof(buf));
+	strlcat(cmd, " 2>&1", sizeof(cmd));
+
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sa.sa_handler = catchsig;
+
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGTERM, &sa, NULL);
+	sigaction(SIGHUP, &sa, NULL);
+	sigaction(SIGALRM, &sa, NULL);
+	sigaction(SIGWINCH, &sa, NULL);
 
 	initscr();
-	lines = LINES;
-	cols = COLS;
 	hold_curs = curs_set(0);
 
-	signal(SIGALRM, display);
-	signal(SIGWINCH, resize);
-	raise(SIGALRM);
-	settimer(period);
+	if (flags & F_TITLE) {
+		titlew = newwin(1, 0, 0, 0);
+		wattron(titlew, A_BOLD);
+		outw = newwin(LINES - 2, 0, 2, 0);
+	} else {
+		titlew = NULL;
+		outw = stdscr;
+	}
 
-	while (f_die == FALSE)
-		pause();
+	settimer(delay);
 
+	for (;;) {
+		if (flags & F_RESIZE) {
+			resize();
+			if (flags & F_TITLE) {
+				wresize(titlew, 1, COLS); 
+				clearok(titlew, TRUE);
+				wresize(outw, LINES - 2, COLS); 
+			}
+			clearok(outw, TRUE);
+			flags &= ~F_RESIZE;
+		}
+
+		if (flags & F_UPDATE) {
+			if (flags & F_TITLE)
+				title(titlew, buf, delay);
+
+			ret = display(outw, cmd, out, sizeof(out));
+			doupdate();
+			flags &= ~F_UPDATE;
+		}
+
+		if (flags & F_DIE)
+			break;
+
+		sigsuspend(&sa.sa_mask);
+	}
+
+	if (flags & F_TITLE) {
+		delwin(outw);
+		delwin(titlew);
+	}
 	curs_set(hold_curs);
 	endwin();
+
 	if (ret != 0)
-		fprintf(stderr, "%s: %s", __progname, output);
-	exit(ret >> 8);		/* XXX */
+		(void)fprintf(stderr, "%s: %s", __progname, out);
+
+	return (ret >> 8);		/* XXX */
 }
 
-static int
-readargs(char **argv)
+int
+readargs(char **argv, char *buf, size_t sz)
 {
-	int alen;
-	int blen;
-
 	if (*argv == NULL)
 		return -1;
 
-	alen = strlen(*argv);
-	if (alen >= (int) sizeof(buffer))
-		return -1;
-	memcpy(buffer, *argv, alen);
-
-	while (*++argv != NULL) {
-		alen = strlen(*argv);
-		blen = strlen(buffer);
-		if (alen + blen + 1 >= (int) sizeof(buffer))
-			return -1;
-		buffer[blen] = ' ';
-		memcpy(buffer + blen + 1, *argv, alen);
-		buffer[alen + blen + 1] = '\0';
+	while (*argv) {
+		strlcat(buf, *argv++, sz);
+		strlcat(buf, " ", sz);
 	}
 	return 0;
 }
 
-static int
-readcmd(void)
+int
+readcmd(char *buf, size_t sz)
 {
-	if (isatty(fileno(stdin)) == 0)
-		return -1;
-	(void) fprintf(stderr, "command: ");
-	if (fgets(buffer, sizeof(buffer), stdin) == NULL)
-		return -1;
-	buffer[strlen(buffer) - 1] = '\0';
-	if (strlen(buffer) == 0)
-		return -1;
-	return 0;
+	if (isatty(fileno(stdin))) {
+		(void)fprintf(stderr, "command: ");
+		if (fgets(buf, sz - 1, stdin) != NULL
+			&& strlen(buf) > 1) {
+			buf[strlen(buf) - 1] = '\0';
+			return 0;
+		}
+	}
+	return -1;
 }
 
-static void
-display(int ignored)
+int
+display(WINDOW *outw, char *cmd, char *out, size_t sz)
 {
-	int line_count;
-	FILE *pipe;
+	FILE	*pipe;
+	int	ret = -1;
+	int	y, x;
 
-	(void) ignored;
-	move(0, 0);
-	line_count = 0;
+	if ((pipe = popen(cmd, "r")) != NULL) {
+		wmove(outw, 0, 0);
+		getmaxyx(outw, y, x);
 
-	if (f_title != FALSE) {
-		title();
-		line_count = 2;
+		while (fgets(out, sz - 1, pipe) != NULL && y--)
+			waddnstr(outw, out, x);
+
+		if ((ret = pclose(pipe)) == 0) {
+			wclrtobot(outw);
+			wnoutrefresh(outw);
+			return 0;
+		}
 	}
-	if ((pipe = popen(input, "r")) == NULL)
-		raise(SIGINT);
-
-	while (fgets(output, sizeof(output), pipe) != NULL &&
-	    line_count < lines && cols < (int) sizeof(output)) {
-		output[cols] = '\0';
-		mvaddstr(line_count++, 0, output);
-	}
-	if ((ret = pclose(pipe)) != 0)
-		raise(SIGINT);
-	clrtobot();
-	refresh();
+	raise(SIGINT);
+	return ret;
 }
 
-static int
-title(void)
+void
+title(WINDOW *titlew, char *buf, int delay)
 {
-	int tlen;
-	int tlen2;
-	char title[BUFSIZE];
-	time_t tval;
-	struct tm *tm;
-
-	if (cols >= (int) sizeof(title) || cols - 10 < 0)
-		return -1;
+	time_t	tval;
+	struct	tm *tm;
+	int	y, x;
 
 	tval = time(NULL);
 	tm = localtime(&tval);
 
-	snprintf(title, cols, "Every %ds: %s", period, buffer);
+	werase(titlew);
+	mvwprintw(titlew, 0, 0, "Every %ds: %s", delay, buf);
 
-	tlen = strlen(title);
-	tlen2 = cols - tlen;
+	getyx(titlew, y, x);
+	if (x > COLS - 8)
+		mvwaddstr(titlew, 0, COLS - 12, "... ");
 
-	if (tlen2 > 0)
-		memset(title + tlen, ' ', tlen2);
-	if (tlen2 < 9)
-		title[cols - 10] = '>';
+	mvwprintw(titlew, 0, COLS - 8, "%.2d:%.2d:%.2d",
+		tm->tm_hour, tm->tm_min, tm->tm_sec);
 
-	snprintf(title + cols - 9, 10, " %.2d:%.2d:%.2d",
-	    tm->tm_hour, tm->tm_min, tm->tm_sec);
-	title[cols] = '\0';
-
-	attron(A_BOLD);
-	addstr(title);
-	attroff(A_BOLD);
-
-	move(2, 0);
-	return 0;
+	wnoutrefresh(titlew);
 }
 
-static void
-resize(int ignored)
+void
+resize(void)
 {
-	struct winsize ws;
+	struct	winsize ws;
 
-	(void) ignored;
-	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != -1) {
-		lines = ws.ws_row;
-		cols = ws.ws_col;
-		resizeterm(lines, cols);
-	}
-	clear();
+	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != -1)
+		resizeterm(ws.ws_row, ws.ws_col);
+
 	raise(SIGALRM);
 }
 
-static void
-settimer(int wait)
+void
+settimer(int sec)
 {
-	struct itimerval itv;
+	struct	itimerval itv;
 
-	itv.it_value.tv_sec = wait;
+	itv.it_value.tv_sec = sec;
 	itv.it_value.tv_usec = 0;
 	itv.it_interval = itv.it_value;
+
 	setitimer(ITIMER_REAL, &itv, NULL);
 }
 
-static void
-die(int ignored)
-{
-	(void) ignored;
-	f_die = TRUE;
-}
-
-static __dead void
+__dead void
 usage(void)
 {
-	(void) fprintf(stderr,
-	    "usage: %s [-tv] [-s time] [command]\n", __progname);
+	(void)fprintf(stderr,
+		"usage: %s [-nv] [-s time] [command]\n", __progname);
 	exit(1);
 }
