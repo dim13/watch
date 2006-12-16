@@ -38,7 +38,7 @@ static const char version[] = "1.0";
 #ifndef __dead
 #define __dead	__attribute__((noreturn))
 #endif
-#define strlcpy(d,s,l)	(strncpy(d,s,l), (d)[(l)-1 = '\0')
+#define strlcpy(d,s,l)	(strncpy(d,s,l), (d)[(l) - 1] = '\0')
 #define strlcat(d,s,l)	strncat(d,s,(l) - strlen(d) - 1)
 #endif
 
