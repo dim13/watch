@@ -24,6 +24,7 @@ static const char version[] = "1.0";
 
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 
 #include <curses.h>
 #include <limits.h>
@@ -194,7 +195,7 @@ main(int argc, char **argv)
 	if (ret != 0)
 		(void)fprintf(stderr, "%s: %s", __progname, out);
 
-	return (ret >> 8);		/* XXX */
+	return ret;
 }
 
 int
@@ -245,7 +246,7 @@ display(WINDOW *outw, char *cmd, char *out, size_t sz)
 		}
 	}
 	raise(SIGINT);
-	return ret;
+	return WEXITSTATUS(ret);
 }
 
 void
