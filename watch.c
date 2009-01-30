@@ -20,7 +20,7 @@ static const char rcsid[] =
 "$Id$";
 #endif /* not lint */
 
-static const char version[] = "1.0";
+static const char version[] = "1.1";
 
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -101,15 +101,15 @@ main(int argc, char **argv)
 	int	delay = DELAY;
 	int	ch;
 
-	while ((ch = getopt(argc, argv, "+s:nv")) != -1)
+	while ((ch = getopt(argc, argv, "+n:tv")) != -1)
 		switch (ch) {
-		case 's':
+		case 'n':
 			delay = atoi(optarg);
 			if (delay < 1)
 				usage();
 				/* NOTREACHED */
 			break;
-		case 'n':
+		case 't':
 			flags &= ~F_TITLE;
 			break;
 		case 'v':
@@ -299,6 +299,6 @@ __dead void
 usage(void)
 {
 	(void)fprintf(stderr,
-		"usage: %s [-nv] [-s time] [command]\n", __progname);
+		"usage: %s [-tv] [-n time] [command]\n", __progname);
 	exit(1);
 }
