@@ -20,7 +20,7 @@ static const char rcsid[] =
 "$Id$";
 #endif /* not lint */
 
-static const char version[] = "1.1";
+static const char version[] = "2.0";
 
 #include <sys/ioctl.h>
 #include <sys/time.h>
