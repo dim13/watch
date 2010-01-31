@@ -1,6 +1,6 @@
 /* $Id$ */
 /*
- * Copyright (c) 2003 Dimitri Sokolyuk <demon@vhost.dymdns.org>
+ * Copyright (c) 2003 Dimitri Sokolyuk <demon@dim13.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
