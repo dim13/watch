@@ -90,7 +90,7 @@ main(int argc, char **argv)
 	WINDOW	*outw = stdscr;
 	struct	sigaction sa;
 	char	buf[_POSIX_MAX_INPUT];
-	char	cmd[_POSIX_MAX_INPUT];
+	char	cmd[_POSIX_MAX_INPUT + 5];
 	char	out[_POSIX_MAX_INPUT];
 	int	hold_curs;
 	int	ret = -1;
@@ -130,7 +130,7 @@ main(int argc, char **argv)
 		/* NOTREACHED */
 
 	memcpy(cmd, buf, sizeof(buf));
-	strlcat(cmd, " 2>&1", sizeof(cmd) - 5);
+	strlcat(cmd, " 2>&1", sizeof(cmd));
 
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
