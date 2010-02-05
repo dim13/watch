@@ -21,8 +21,8 @@ static const char rcsid[] =
 #endif /* not lint */
 
 /* version */
-const int minor = 2;
-const int major = 1;
+const int major = 2;
+const int minor = 1;
 
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -110,7 +110,7 @@ main(int argc, char **argv)
 			break;
 		case 'v':
 			(void)fprintf(stderr, "%s %d.%d\n",
-			    __progname, minor, major);
+			    __progname, major, minor);
 			exit(1);
 			break;
 		case 'h':
