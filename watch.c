@@ -36,6 +36,7 @@ const int minor = 1;
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <sysexits.h>
 
 #if defined(__linux__)
 #ifndef __dead
@@ -93,11 +94,11 @@ main(int argc, char **argv)
 	char	cmd[_POSIX_MAX_INPUT + 5];
 	char	out[_POSIX_MAX_INPUT];
 	int	hold_curs;
-	int	ret = -1;
+	int	ret = EX_SOFTWARE;
 	int	delay = DELAY;
 	int	ch;
 
-	while ((ch = getopt(argc, argv, "+hn:tv")) != -1)
+	while ((ch = getopt(argc, argv, "+hn:t")) != -1)
 		switch (ch) {
 		case 'n':
 			delay = atoi(optarg);
@@ -107,11 +108,6 @@ main(int argc, char **argv)
 			break;
 		case 't':
 			title_flag = 0;
-			break;
-		case 'v':
-			(void)fprintf(stderr, "%s %d.%d\n",
-			    __progname, major, minor);
-			exit(1);
 			break;
 		case 'h':
 		case '?':
@@ -222,7 +218,7 @@ int
 display(WINDOW *outw, char *cmd, char *out, size_t sz)
 {
 	FILE	*pipe;
-	int	ret = -1;
+	int	ret = EX_OSERR;
 	int	y, x;
 
 	pipe = popen(cmd, "r");
@@ -294,5 +290,5 @@ usage(void)
 {
 	(void)fprintf(stderr, "usage: %s [-htv] [-n time] [command]\n",
 	    __progname);
-	exit(1);
+	exit(EX_USAGE);
 }
