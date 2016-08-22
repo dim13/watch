@@ -1,4 +1,3 @@
-/* $Id$ */
 /*
  * Copyright (c) 2003 Dimitri Sokolyuk <demon@dim13.org>
  *
@@ -15,15 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef lint
-static const char rcsid[] =
-"$Id$";
-#endif /* not lint */
-
-/* version */
-const int major = 2;
-const int minor = 1;
-
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/wait.h>
@@ -37,14 +27,6 @@ const int minor = 1;
 #include <time.h>
 #include <unistd.h>
 #include <sysexits.h>
-
-#if defined(__linux__)
-#ifndef __dead
-#define __dead	__attribute__((noreturn))
-#endif
-#define strlcpy(d,s,l)	(strncpy(d,s,(l) - strlen(d) - 1), (d)[(l) - 1] = '\0')
-#define strlcat(d,s,l)	strncat(d,s,(l) - strlen(d) - 1)
-#endif
 
 #ifndef DELAY
 #define DELAY	2	/* default delay between screen updates in seconds */
@@ -64,7 +46,7 @@ int	display(WINDOW *, char *, char *, size_t);
 void	title(WINDOW *, char *, int);
 void	resize(void);
 void	settimer(int);
-__dead	void usage(void);
+void	usage(void);
 
 void
 catchsig(int sig)
@@ -285,7 +267,7 @@ settimer(int sec)
 	setitimer(ITIMER_REAL, &itv, NULL);
 }
 
-__dead void
+void
 usage(void)
 {
 	(void)fprintf(stderr, "usage: %s [-htv] [-n time] [command]\n",

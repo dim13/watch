@@ -1,0 +1,7 @@
+PROG	 = watch
+LDFLAGS	+= -lncurses -lbsd
+
+all: ${PROG}
+
+clean:
+	${RM} ${PROG} *.o
