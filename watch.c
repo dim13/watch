@@ -53,9 +53,8 @@ catchsig(int sig)
 {
 	switch (sig) {
 	case SIGWINCH:
-		resize_flag = 1;
-		/* FALLTHROUGH */
 	case SIGALRM:
+		resize_flag = 1;
 		break;
 	case SIGINT:
 	case SIGTERM:
