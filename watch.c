@@ -269,7 +269,7 @@ settimer(int sec)
 void
 usage(void)
 {
-	(void)fprintf(stderr, "usage: %s [-htv] [-n time] [command]\n",
+	(void)fprintf(stderr, "usage: %s [-ht] [-n time] [command]\n",
 	    __progname);
 	exit(EX_USAGE);
 }
