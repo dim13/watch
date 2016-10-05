@@ -28,10 +28,6 @@
 #include <unistd.h>
 #include <sysexits.h>
 
-#ifndef DELAY
-#define DELAY	2	/* default delay between screen updates in seconds */
-#endif
-
 int	die_flag = 0;
 int	title_flag = 1;
 int	resize_flag = 0;
@@ -76,7 +72,7 @@ main(int argc, char **argv)
 	char	out[_POSIX_MAX_INPUT];
 	int	hold_curs;
 	int	ret = EX_SOFTWARE;
-	int	delay = DELAY;
+	int	delay = 2;	/* refresh every 2 seconds per default */
 	int	ch;
 
 	while ((ch = getopt(argc, argv, "+hn:t")) != -1)
