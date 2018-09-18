@@ -1,0 +1,4 @@
+language: c
+before_install:
+  - sudo apt-get install -y libbsd-dev libncurses5-dev
+script: make -f Makefile.linux
