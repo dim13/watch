@@ -1,11 +1,9 @@
-PROG=		watch
-BINDIR=		/usr/local/bin
-MAN=		watch.1
-DPADD=		${LIBCURSES}
-CFLAGS+=	-W -Wall
-LDADD=		-lcurses
+PROG	 = watch
+LIBS	 = ncurses
+CFLAGS	+= $(shell pkg-config --cflags $(LIBS))
+LDLIBS	+= $(shell pkg-config --libs   $(LIBS))
 
-README.md:	watch.1
-	mandoc -Tmarkdown ${.ALLSRC} > ${.TARGET}
+all: ${PROG}
 
-. include <bsd.prog.mk>
+clean:
+	${RM} ${PROG} *.o

@@ -28,6 +28,10 @@
 #include <unistd.h>
 #include <sysexits.h>
 
+#if defined(__linux__)
+#define strlcat(d, s, n) strncat(d, s, sizeof(d) - strlen(d) - 1)
+#endif
+
 int	die_flag = 0;
 int	title_flag = 1;
 int	resize_flag = 0;
